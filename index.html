@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number Guessing Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .pulse {
+            animation: pulse 0.5s ease-in-out;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full mx-auto">
+        <!-- Game Container -->
+        <div id="game-container" class="bg-white rounded-xl shadow-xl overflow-hidden p-6 space-y-6 transition-all duration-300">
+            <!-- Title Section -->
+            <div class="text-center">
+                <h1 class="text-3xl font-bold text-indigo-700 mb-2">Number Detective By Dev Prakash Singh</h1>
+                <p class="text-gray-600">Can you crack the code using the clues?</p>
+            </div>
+
+            <!-- Screen 1: Difficulty Selection -->
+            <div id="difficulty-screen" class="space-y-6 fade-in">
+                <div class="space-y-3">
+                    <h2 class="text-xl font-semibold text-gray-800">Choose Your Challenge</h2>
+                    <p class="text-gray-600">Select difficulty to begin:</p>
+                </div>
+                
+                <div class="grid gap-3">
+                    <button 
+                        onclick="startGame('easy')"
+                        class="w-full py-3 px-6 bg-green-100 hover:bg-green-200 text-green-800 rounded-lg font-medium transition-colors flex items-center justify-between"
+                    >
+                        <span>Easy (1-50)</span>
+                        <span>🔍</span>
+                    </button>
+                    
+                    <button 
+                        onclick="startGame('medium')"
+                        class="w-full py-3 px-6 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg font-medium transition-colors flex items-center justify-between"
+                    >
+                        <span>Medium (1-100)</span>
+                        <span>🔎</span>
+                    </button>
+                    
+                    <button 
+                        onclick="startGame('hard')"
+                        class="w-full py-3 px-6 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg font-medium transition-colors flex items-center justify-between"
+                    >
+                        <span>Hard (1-200)</span>
+                        <span>🕵️‍♂️</span>
+                    </button>
+                </div>
+
+                <div class="pt-4 border-t border-gray-100">
+                    <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/7b5fa77f-ff17-4644-96a5-f550c99cade4.png" alt="Illustration of a detective with magnifying glass examining numbers floating in the air" class="w-full rounded-lg" />
+                </div>
+            </div>
+
+            <!-- Screen 2: Game Play -->
+            <div id="game-screen" class="hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <span id="difficulty-badge" class="px-3 py-1 rounded-full text-sm font-medium"></span>
+                    </div>
+                    <div id="attempts-counter" class="text-gray-600 font-medium">Attempts: 0</div>
+                </div>
+
+                <div class="space-y-3">
+                    <label for="guess-input" class="block text-sm font-medium text-gray-800">Your Guess:</label>
+                    <div class="flex gap-2">
+                        <input 
+                            type="number" 
+                            id="guess-input" 
+                            class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                            placeholder="Enter a number..."
+                        >
+                        <button 
+                            id="guess-button"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm"
+                        >
+                            Guess
+                        </button>
+                    </div>
+                </div>
+
+                <div id="hint-section" class="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                    <h3 class="font-medium text-blue-800 mb-2">🧩 Puzzle Hint:</h3>
+                    <p id="hint-text" class="text-blue-700 italic"></p>
+                </div>
+
+                <div id="feedback-section" class="hidden fade-in">
+                    <div id="feedback-message" class="text-lg font-medium mb-2 py-2 rounded-lg text-center"></div>
+                </div>
+
+                <div id="history-section" class="hidden bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <h3 class="font-medium text-gray-800 mb-2">📝 Previous Guesses:</h3>
+                    <div id="guess-history" class="flex flex-wrap gap-2"></div>
+                </div>
+            </div>
+
+            <!-- Screen 3: Game Over -->
+            <div id="game-over-screen" class="hidden text-center space-y-6">
+                <div id="result-message" class="text-2xl font-bold"></div>
+                <div class="text-xl font-medium" id="final-attempts"></div>
+                <img id="result-image" src="" alt="" class="w-full max-w-xs mx-auto rounded-lg" />
+                <button 
+                    onclick="resetGame()"
+                    class="w-full py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors mx-auto"
+                >
+                    Play Again
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-4 text-gray-500 text-xs">
+            <p>Number Detective Game - Guess wisely! Made Bye Dev Prakash Singh</p>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let targetNumber = 0;
+        let difficulty = '';
+        let attempts = 0;
+        let hintPattern = '';
+        let gameActive = false;
+        let guessHistory = [];
+
+        // Difficulty settings
+        const difficultySettings = {
+            easy: {
+                range: [1, 50],
+                hints: [
+                    "I'm thinking of a number with no repetitions",
+                    "Add all digits together and you'd get a single-digit prime",
+                    "This number shares its name with a famous animated movie",
+                    "It's a common number of weeks in half a year"
+                ]
+            },
+            medium: {
+                range: [1, 100],
+                hints: [
+                    "When squared, this number appears in the Fibonacci sequence",
+                    "This number is the atomic number of a precious metal",
+                    "It's the highest score possible with three darts in darts",
+                    "Multiply by 2 and subtract 10, you get a perfect square"
+                ]
+            },
+            hard: {
+                range: [1, 200],
+                hints: [
+                    "This number is equal to the sum of five consecutive primes",
+                    "It's the smallest number expressible as sum of two cubes in two different ways",
+                    "Reverse my digits and you'd get a multiple of 7",
+                    "This number appears in the Dewey classification for computer science"
+                ]
+            }
+        };
+
+        // Initialize game
+        function startGame(selectedDifficulty) {
+            difficulty = selectedDifficulty;
+            const range = difficultySettings[difficulty].range;
+            targetNumber = Math.floor(Math.random() * (range[1] - range[0] + 1)) + range[0];
+            
+            // Setup hint pattern (show hints in order with options)
+            hintPattern = generateHintPattern(difficulty);
+            
+            attempts = 0;
+            gameActive = true;
+            guessHistory = [];
+            
+            // Update UI
+            document.getElementById('difficulty-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('difficulty-badge').textContent = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+            document.getElementById('difficulty-badge').className = `px-3 py-1 rounded-full text-sm font-medium ${
+                difficulty === 'easy' ? 'bg-green-100 text-green-800' : 
+                difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' : 
+                'bg-red-100 text-red-800'
+            }`;
+            
+            updateAttemptsCounter();
+            showCurrentHint();
+            
+            // Focus input
+            document.getElementById('guess-input').focus();
+        }
+
+        function generateHintPattern(difficulty) {
+            // Use first hint immediately
+            const hints = [...difficultySettings[difficulty].hints];
+            
+            // For every 3 attempts, show another hint (but rotate through all available)
+            return hints;
+        }
+
+        function showCurrentHint() {
+            const hintIndex = Math.min(Math.floor(attempts / 3), difficultySettings[difficulty].hints.length - 1);
+            document.getElementById('hint-text').textContent = difficultySettings[difficulty].hints[hintIndex];
+        }
+
+        function updateAttemptsCounter() {
+            document.getElementById('attempts-counter').textContent = `Attempts: ${attempts}`;
+        }
+
+        function updateGuessHistory(guess) {
+            guessHistory.push(guess);
+            const historyElement = document.getElementById('guess-history');
+            
+            // Clear and rebuild history display
+            historyElement.innerHTML = '';
+            guessHistory.forEach((g, i) => {
+                const entry = document.createElement('div');
+                entry.className = `px-3 py-1 rounded-full text-sm font-medium ${
+                    g === targetNumber ? 'bg-green-100 text-green-800' :
+                    g < targetNumber ? 'bg-blue-100 text-blue-800' :
+                    'bg-red-100 text-red-800'
+                }`;
+                entry.textContent = `${i+1}: ${g}`;
+                historyElement.appendChild(entry);
+            });
+            
+            document.getElementById('history-section').classList.remove('hidden');
+        }
+
+        function handleGuess() {
+            if (!gameActive) return;
+            
+            const input = document.getElementById('guess-input');
+            const guess = parseInt(input.value);
+            
+            if (isNaN(guess) || guess < 1 || guess > difficultySettings[difficulty].range[1]) {
+                input.value = '';
+                input.focus();
+                return;
+            }
+            
+            attempts++;
+            updateAttemptsCounter();
+            updateGuessHistory(guess);
+            showCurrentHint();
+            
+            const feedbackElement = document.getElementById('feedback-message');
+            const feedbackSection = document.getElementById('feedback-section');
+            
+            if (guess === targetNumber) {
+                // Correct guess
+                gameActive = false;
+                feedbackElement.textContent = '🎉 Correct! You guessed the number!';
+                feedbackElement.className = 'text-xl font-bold text-green-600 mb-2 py-2 rounded-lg text-center pulse';
+                feedbackSection.classList.remove('hidden');
+                setTimeout(() => endGame(true), 1500);
+            } else {
+                // Incorrect guess - give direction hint
+                feedbackSection.classList.remove('hidden');
+                feedbackElement.textContent = guess < targetNumber ? '↑ Too low!' : '↓ Too high!';
+                feedbackElement.className = `text-lg font-medium mb-2 py-2 rounded-lg text-center pulse ${
+                    guess < targetNumber ? 'text-blue-600' : 'text-red-600'
+                }`;
+                
+                // Special feedback after several attempts
+                if (attempts >= 8) {
+                    let distance = Math.abs(targetNumber - guess);
+                    let closenessHint = '';
+                    
+                    if (distance <= 5) {
+                        closenessHint = '🔥 Very close!';
+                    } else if (distance <= 15) {
+                        closenessHint = '👉 Getting warmer';
+                    } else {
+                        closenessHint = '❄️ Still cold';
+                    }
+                    
+                    feedbackElement.textContent += ` ${closenessHint}`;
+                }
+            }
+            
+            input.value = '';
+            input.focus();
+        }
+
+        function endGame(isWin) {
+            document.getElementById('game-screen').classList.add('hidden');
+            const gameOverScreen = document.getElementById('game-over-screen');
+            gameOverScreen.classList.remove('hidden');
+            
+            const resultMessage = document.getElementById('result-message');
+            const finalAttempts = document.getElementById('final-attempts');
+            const resultImage = document.getElementById('result-image');
+            
+            if (isWin) {
+                resultMessage.textContent = 'Case Solved!';
+                resultMessage.className = 'text-2xl font-bold text-green-600';
+                finalAttempts.textContent = `You cracked it in ${attempts} ${attempts === 1 ? 'try' : 'tries'}`;
+                resultImage.src = 'https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/8a5042d3-ddf6-4f25-95d3-b18d230c8ae4.png';
+                resultImage.alt = 'Celebratory illustration of a detective with a trophy, confetti falling around them';
+            } else {
+                resultMessage.textContent = 'Case Unsolved';
+                resultMessage.className = 'text-2xl font-bold text-red-600';
+                finalAttempts.textContent = `The number was ${targetNumber}`;
+                resultImage.src = 'https://placehold.co/600x400';
+                resultImage.alt = 'Illustration of a detective looking disappointed with a magnifying glass hanging down';
+            }
+        }
+
+        function resetGame() {
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('difficulty-screen').classList.remove('hidden');
+            document.getElementById('feedback-section').classList.add('hidden');
+            document.getElementById('history-section').classList.add('hidden');
+            document.getElementById('guess-history').innerHTML = '';
+        }
+
+        // Event listeners
+        document.getElementById('guess-button').addEventListener('click', handleGuess);
+        document.getElementById('guess-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleGuess();
+            }
+        });
+    </script>
+</body>
+</html>
+
